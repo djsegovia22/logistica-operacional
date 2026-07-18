@@ -2,7 +2,7 @@
 
 ## Novedades
 
-- Tiempo estimado de viaje calculado por internet mediante Google Routes API, considerando tráfico.
+- Tiempo estimado de viaje calculado por internet mediante OpenRouteService.
 - Origen y destino se consultan desde las direcciones activas del módulo Destinos.
 - Jerarquía automática de prioridad según el perfil del solicitante.
 - El operador visualiza la prioridad de cada actividad.
@@ -19,22 +19,21 @@
 - Operador: ejecuta requerimientos asignados y visualiza su prioridad.
 - Las solicitudes de tipo Urgencias se registran con prioridad Máxima.
 
-## Configurar Google Routes API
+## Configurar OpenRouteService
 
-1. Cree un proyecto en Google Cloud.
-2. Active **Routes API** y la facturación de Google Maps Platform.
-3. Cree una API key y restríngala para usar Routes API.
-4. Copie `.env.example` como `.env`.
-5. Pegue la clave en `GOOGLE_MAPS_API_KEY`.
+1. Cree una cuenta gratuita en https://openrouteservice.org/dev/#/signup (solo pide correo, sin tarjeta de crédito).
+2. Genere un token en su panel ("Request a token" / "Dashboard").
+3. Copie `.env.example` como `.env`.
+4. Pegue la clave en `ORS_API_KEY`.
 
 Ejemplo:
 
 ```env
-GOOGLE_MAPS_API_KEY=su_clave_real
+ORS_API_KEY=su_clave_real
 SECRET_KEY=una_clave_privada
 ```
 
-La aplicación lee automáticamente el archivo `.env`. Sin una clave válida, no permitirá crear el requerimiento porque no podrá confirmar el tiempo de viaje.
+La aplicación lee automáticamente el archivo `.env`. Al guardar un destino con dirección, la app geocodifica automáticamente esa dirección (la convierte a coordenadas) y la guarda para no tener que repetir esa consulta en cada requerimiento. Sin una clave válida, el requerimiento se registra igual, pero queda en estado "Revisión y confirme" porque no se pudo confirmar el tiempo de viaje.
 
 ## Instalación
 

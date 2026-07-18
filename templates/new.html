@@ -30,12 +30,11 @@
     <section class="wizard-step active" data-step="1">
       <div class="step-heading"><span>PASO 1 DE 5</span><h2>¿Qué servicio necesita?</h2><p>Seleccione una categoría para continuar.</p></div>
       <div class="service-grid">
-        {% set icons = ['👤','🚛','📦','🚐','🛠','🛻','🚚','🚜','📝','⚙','⚠'] %}
         {% for x in types %}
-        <button class="service-card" type="button" data-service="{{ x }}">
-          <span class="service-icon">{{ icons[loop.index0] }}</span>
-          <b>{{ x }}</b>
-          <small>Seleccionar servicio</small>
+        <button class="service-card" type="button" data-service="{{ x.label }}">
+          <span class="service-icon">{{ x.icon }}</span>
+          <b>{{ x.label }}</b>
+          <small>{{ x.hint }}</small>
         </button>
         {% endfor %}
       </div>
@@ -46,7 +45,7 @@
       <div class="step-heading"><span>PASO 2 DE 5</span><h2>Información general</h2><p>Indique cuándo se necesita el servicio y su duración estimada.</p></div>
       <div class="wizard-fields two-cols">
         <label>Solicitante<input value="{{ current_user.name }}" disabled></label>
-        <label>Perfil<input value="{{ current_user.role }}" disabled></label><div class="info-box"><small>PRIORIDAD DEL PERFIL</small><b>{{ PRIORITY_LABEL.get(PRIORITY_BY_ROLE.get(current_user.role,2)) }}</b><span>Se asigna automáticamente según la jerarquía del usuario.</span></div>
+        <label>Perfil<input value="{{ current_user.role }}" disabled></label>
         <label>Fecha de la necesidad<input id="needDate" type="date" required></label>
         <label>Hora de la necesidad<input id="needTime" type="time" required></label>
         <label>Duración estimada (minutos)<input name="duration_min" id="durationInput" type="number" min="10" step="10" value="60" required></label>
@@ -84,7 +83,7 @@
       <div class="step-heading"><span>PASO 5 DE 5</span><h2>Revise y confirme</h2><p>Verifique los datos antes de crear el requerimiento.</p></div>
       <div class="confirmation-layout">
         <div class="confirmation-card">
-          <div class="confirmation-head"><span>RESUMEN DE LA SOLICITUD</span><b id="summaryPriority">PRIORIDAD MEDIA</b></div>
+          <div class="confirmation-head"><span>RESUMEN DE LA SOLICITUD</span></div>
           <dl>
             <div><dt>Tipo</dt><dd id="summaryType">—</dd></div>
             <div><dt>Solicitante</dt><dd>{{ current_user.name }}</dd></div>
@@ -212,8 +211,6 @@
     document.getElementById('summaryDescription').textContent=value('descriptionInput')||'—';
     document.getElementById('summaryDimensions').textContent=value('dimensionsInput')||'No informado';
     document.getElementById('summaryWeight').textContent=value('weightInput')?`${value('weightInput')} kg`:'No informado';
-    const urgent=typeInput.value==='Urgencias';
-    document.getElementById('summaryPriority').textContent=urgent?'PRIORIDAD MÁXIMA':'PRIORIDAD {{ PRIORITY_LABEL.get(PRIORITY_BY_ROLE.get(current_user.role,2), "NORMAL")|upper }}';
   }
 
   form.addEventListener('submit',e=>{
@@ -225,6 +222,9 @@
 
   const now=new Date(); now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
   document.getElementById('needDate').min=now.toISOString().slice(0,10);
+  const defaultNeed=new Date(now); defaultNeed.setDate(defaultNeed.getDate()+1);
+  document.getElementById('needDate').value=defaultNeed.toISOString().slice(0,10);
+  document.getElementById('needTime').value='07:00';
   showStep(1);
 })();
 </script>

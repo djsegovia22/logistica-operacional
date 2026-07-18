@@ -1,19 +1,133 @@
 {% extends 'base.html' %}
 {% block page_heading %}OPERADORES{% endblock %}
 {% block content %}
-<section class="panel">
-  <div class="panel-head"><div><h2>CALENDARIO DE TURNOS</h2><p>Visualice quién se encuentra en turno durante la fecha seleccionada.</p></div><form method="get" class="inline-filter"><input type="date" name="date" value="{{date}}"><button>Ver fecha</button></form></div>
-  <form method="post" class="shift-form">
-    <input type="hidden" name="action" value="shift">
-    <label>Operador<select name="operator_id">{% for o in rows %}<option value="{{o.id}}">{{o.name}}</option>{% endfor %}</select></label>
-    <label>Fecha<input type="date" name="shift_date" value="{{date}}" required></label><label>Inicio<input type="time" name="start_time" value="08:00" required></label><label>Término<input type="time" name="end_time" value="20:00" required></label><label>Turno<input name="shift_name" value="Turno A"></label><button>Agregar turno</button>
+<section class="panel operators-calendar-panel">
+  <div class="panel-head"><div><h2>CALENDARIO DE OPERADORES</h2><p>Visualiza la disponibilidad y actividades de los operadores.</p></div></div>
+
+  <div class="calendar-toolbar">
+    <div class="calendar-nav">
+      <a class="btn outline" href="{{url_for('operators_day',view=view)}}">Hoy</a>
+      <a class="nav-arrow" href="{{url_for('operators_day',view=view,anchor=prev_anchor,operator=operator_filter,estado=estado_filter)}}">‹</a>
+      <span class="period-label">📅 {{period_label}}</span>
+      <a class="nav-arrow" href="{{url_for('operators_day',view=view,anchor=next_anchor,operator=operator_filter,estado=estado_filter)}}">›</a>
+    </div>
+    <form method="get" class="view-picker">
+      <input type="hidden" name="anchor" value="{{anchor}}">
+      <input type="hidden" name="operator" value="{{operator_filter or ''}}">
+      <input type="hidden" name="estado" value="{{estado_filter or ''}}">
+      <select name="view" onchange="this.form.submit()">
+        <option value="dia" {% if view=='dia' %}selected{% endif %}>Vista diaria</option>
+        <option value="semana" {% if view=='semana' %}selected{% endif %}>Vista semanal</option>
+        <option value="mes" {% if view=='mes' %}selected{% endif %}>Vista mensual</option>
+      </select>
+    </form>
+  </div>
+
+  <form method="get" class="calendar-filters">
+    <input type="hidden" name="view" value="{{view}}">
+    <label>Operador
+      <select name="operator" onchange="this.form.submit()">
+        <option value="">Todos los operadores</option>
+        {% for o in all_operators %}<option value="{{o.id}}" {% if operator_filter==o.id %}selected{% endif %}>{{o.name}}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Fecha
+      {% if view=='mes' %}<input type="month" name="anchor" value="{{anchor[:7]}}" onchange="this.form.submit()">
+      {% else %}<input type="date" name="anchor" value="{{anchor}}" onchange="this.form.submit()">{% endif %}
+    </label>
+    <label>Estado
+      <select name="estado" onchange="this.form.submit()">
+        <option value="">Todos los estados</option>
+        {% for e in estado_options %}<option value="{{e}}" {% if estado_filter==e %}selected{% endif %}>{{e}}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="calendar-legend">
+      {% for e in estado_options %}<span class="legend-item"><i class="legend-dot {{STATUS_CLASS.get(e,'')}}"></i>{{e}}</span>{% endfor %}
+    </div>
   </form>
-  <div class="shift-calendar">
-    {% for s in shifts %}<article><div class="shift-time">{{s.start_time}}<small>{{s.end_time}}</small></div><div><h3>{{s.operator_name}}</h3><p>{{s.shift_name}} · Base {{s.base}}</p><span>Faenas: {{s.accredited_sites or 'Sin información'}}</span></div></article>{% else %}<div class="empty-state">No hay operadores programados para esta fecha.</div>{% endfor %}
+
+  <div class="roster-grid-wrap">
+    <div class="roster-grid" style="--day-count:{{period_dates|length}}">
+      <div class="roster-row roster-head">
+        <div class="roster-operator-col">Operador</div>
+        {% for d in period_dates %}<div class="roster-day-col {{'roster-today' if d.is_today}}"><small>{{d.weekday_short}}</small><b>{{d.day_num}}</b></div>{% endfor %}
+      </div>
+      {% for o in operators %}
+      <div class="roster-row">
+        <div class="roster-operator-col">
+          <span class="avatar" style="background:{{o.avatar_color}}">{{o.avatar_letter}}</span>
+          <div>
+            <b>{{o.name}}</b>
+            <small>Turno {{o.shift_pattern}}{% if not o.shift_cycle_start %} · sin ciclo configurado{% endif %}</small>
+            <span class="mini-status"><i class="legend-dot {{o.current_status_class}}"></i>{{o.current_status}}</span>
+          </div>
+        </div>
+        {% for d in period_dates %}
+        {% set day_blocks = o.days.get(d.iso, []) %}
+        <div class="roster-day-col {{'roster-today' if d.is_today}}">
+          {% if view=='mes' %}
+            {% if day_blocks %}<span class="status day-chip {{day_blocks[0].status_class}}" title="{{day_blocks|map(attribute='label')|join(', ')}}">{{day_blocks[0].status}}{% if day_blocks|length>1 %} +{{day_blocks|length-1}}{% endif %}</span>
+            {% else %}<span class="status day-chip status-available">Disponible</span>{% endif %}
+          {% else %}
+            {% if day_blocks %}{% for b in day_blocks %}<div class="day-block {{b.status_class}}"><b>{{b.start}} - {{b.end}}</b><span>{{b.label}}</span><small>{{b.status}}</small></div>{% endfor %}
+            {% else %}<div class="day-block status-available"><span>Disponible</span></div>{% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty-state">No hay operadores para los filtros seleccionados.</div>{% endfor %}
+    </div>
   </div>
 </section>
-<section class="panel"><div class="panel-head"><div><h2>INFORMACIÓN DE OPERADORES</h2><p>La creación de cuentas se realiza desde el módulo Usuarios.</p></div><a class="btn" href="{{url_for('users_view')}}">Administrar usuarios</a></div><div class="cards">
-{% for o in rows %}<article class="resource operator-card"><div class="resource-head"><div><h3>{{o.name}}</h3><p>{{o.email}}{% if o.phone %} · {{o.phone}}{% endif %}</p></div><span class="status">{{o.status}}</span></div>
-<form method="post"><input type="hidden" name="action" value="update"><input type="hidden" name="operator_id" value="{{o.id}}"><label>Estado<select name="status">{% for s in ['Habilitado','Permiso administrativo','En faena','Ausente / falla de turno'] %}<option {% if o.status==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select></label><label>Detalle<input name="detail" value="{{o.detail}}"></label><label>Licencias<input name="licenses" value="{{o.licenses}}"></label><label>Base<input name="base" value="{{o.base}}"></label><label>Faenas acreditadas<input name="accredited_sites" value="{{o.accredited_sites}}"></label><button>Guardar información</button></form></article>{% endfor %}
-</div></section>
+
+<section class="panel">
+  <div class="panel-head"><div><h2>LISTA DE OPERADORES</h2><p>Gestiona la información de los operadores.</p></div><a class="btn" href="{{url_for('users_view')}}">Administrar usuarios</a></div>
+  <div class="table-wrap">
+    <table class="operators-table">
+      <thead><tr><th>Operador</th><th>Contacto</th><th>Turno</th><th>Faenas acreditadas</th><th>Estado actual</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for o in operators %}
+      <tr>
+        <td><span class="avatar avatar-sm" style="background:{{o.avatar_color}}">{{o.avatar_letter}}</span>{{o.name}}</td>
+        <td><small>{{o.phone or 'Sin teléfono'}}</small><br><small>{{o.email}}</small></td>
+        <td>Turno {{o.shift_pattern}}{% if o.shift_cycle_start %}<br><small>Ciclo desde {{o.shift_cycle_start|replace('-','/')}}</small>{% else %}<br><small>Sin ciclo configurado</small>{% endif %}</td>
+        <td>{% for s in o.sites_shown %}<span class="site-chip">{{s}}</span>{% endfor %}{% if o.sites_extra %}<span class="site-chip site-chip-more">+{{o.sites_extra}}</span>{% endif %}{% if not o.sites_shown %}<small>Sin información</small>{% endif %}</td>
+        <td><span class="mini-status"><i class="legend-dot {{o.current_status_class}}"></i>{{o.current_status}}</span><br><small>{{o.current_sub}}</small></td>
+        <td class="row-actions">
+          <button type="button" class="icon-btn" title="Editar" onclick="document.getElementById('editop-{{o.id}}').showModal()">✎</button>
+          <a class="icon-btn" title="Agenda completa" href="{{url_for('operator_view',operator_id=o.id)}}">⋮</a>
+          <dialog id="editop-{{o.id}}" class="operator-modal">
+            <div class="modal-head"><h3>Editar {{o.name}}</h3><button type="button" class="modal-close" onclick="this.closest('dialog').close()">✕</button></div>
+            <form method="post" class="edit-operator-form">
+              <input type="hidden" name="action" value="update"><input type="hidden" name="operator_id" value="{{o.id}}">
+              <input type="hidden" name="view" value="{{view}}"><input type="hidden" name="anchor" value="{{anchor}}">
+              <input type="hidden" name="operator_filter" value="{{operator_filter or ''}}"><input type="hidden" name="estado_filter" value="{{estado_filter or ''}}">
+              <label>Estado<select name="status">{% for s in ['Habilitado','Permiso administrativo','En faena','Ausente / falla de turno'] %}<option {% if o.status==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select></label>
+              <label>Detalle<input name="detail" value="{{o.detail}}"></label>
+              <label>Licencias<input name="licenses" value="{{o.licenses}}"></label>
+              <label>Base<input name="base" value="{{o.base}}"></label>
+              <label>Faenas acreditadas<input name="accredited_sites" value="{{o.accredited_sites}}"></label>
+              <label>Patrón de turno<select name="shift_pattern">{% for p in shift_patterns %}<option value="{{p}}" {% if o.shift_pattern==p %}selected{% endif %}>{{p}}</option>{% endfor %}</select></label>
+              <label>Inicio del ciclo (día de turno)<input type="date" name="shift_cycle_start" value="{{o.shift_cycle_start}}"></label>
+              <button>Guardar</button>
+            </form>
+            <form method="post" class="edit-operator-form exception-form">
+              <input type="hidden" name="action" value="exception"><input type="hidden" name="operator_id" value="{{o.id}}">
+              <input type="hidden" name="view" value="{{view}}"><input type="hidden" name="anchor" value="{{anchor}}">
+              <input type="hidden" name="operator_filter" value="{{operator_filter or ''}}"><input type="hidden" name="estado_filter" value="{{estado_filter or ''}}">
+              <small class="exception-title">Vacaciones / Licencia / Exámenes</small>
+              <label>Tipo<select name="type">{% for t in exception_types %}<option>{{t}}</option>{% endfor %}</select></label>
+              <label>Desde<input type="date" name="start_date" required></label>
+              <label>Hasta<input type="date" name="end_date" required></label>
+              <label>Etiqueta (opcional)<input name="shift_name" placeholder="Ej.: Examen periódico"></label>
+              <button>Registrar</button>
+            </form>
+          </dialog>
+        </td>
+      </tr>
+      {% else %}<tr><td colspan="6"><div class="empty-state">No hay operadores para los filtros seleccionados.</div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}

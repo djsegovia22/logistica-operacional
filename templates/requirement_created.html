@@ -1,11 +1,17 @@
 {% extends 'base.html' %}
 {% block page_heading %}REQUERIMIENTO CREADO{% endblock %}
 {% block content %}
-<section class="created-confirmation">
-  <div class="created-check">✓</div>
+<section class="created-confirmation {{'created-review' if req.status=='Revisión y confirme'}}">
+  <div class="created-check">{{'!' if req.status=='Revisión y confirme' else '✓'}}</div>
+  {% if req.status=='Revisión y confirme' %}
+  <p class="created-kicker">REVISIÓN Y CONFIRME</p>
+  <h2>EL REQUERIMIENTO QUEDÓ REGISTRADO, PERO REQUIERE REVISIÓN</h2>
+  <p class="created-message">Un administrador debe validar y confirmar los datos antes de asignarlo.{% if req.controller_note %} Motivo: {{ req.controller_note }}{% endif %}</p>
+  {% else %}
   <p class="created-kicker">REGISTRO EXITOSO</p>
   <h2>¡EL REQUERIMIENTO FUE CREADO CORRECTAMENTE!</h2>
   <p class="created-message">La solicitud ya quedó registrada en el sistema con estado <b>Pendiente</b>.</p>
+  {% endif %}
 
   <div class="created-summary">
     <div><small>TIPO DE SOLICITUD</small><strong>{{ req.type }}</strong></div>

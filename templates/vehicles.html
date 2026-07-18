@@ -1,11 +1,221 @@
 {% extends 'base.html' %}
 {% block page_heading %}VEHÍCULOS{% endblock %}
 {% block content %}
-<section class="panel add-resource-panel"><div class="panel-head"><div><h2>AGREGAR VEHÍCULO</h2><p>Registre una nueva unidad antes de revisar la flota por categoría.</p></div></div><form method="post" class="form-grid"><label>Nombre<input name="name" required></label><label>Categoría<select name="type"><option>Camioneta</option><option>Camión</option><option>Bus</option><option>Maquinaria</option></select></label><label>Patente<input name="plate" required></label><label>Capacidad<input type="number" name="capacity" value="5"></label><label>Licencia requerida<input name="license_required" value="B"></label><label>Estado<select name="status"><option>Disponible</option><option>Mantención</option><option>Fuera de servicio</option></select></label><label>Próxima mantención<input type="date" name="maintenance_due"></label><button class="wide">+ Agregar vehículo</button></form></section>
+<section class="panel add-resource-panel">
+  <details class="add-vehicle-toggle">
+    <summary class="add-vehicle-summary"><div><h2>AGREGAR VEHÍCULO</h2><p>Registre una nueva unidad de la flota.</p></div><span class="btn">+ Agregar vehículo</span></summary>
+    <form method="post" class="form-grid">
+      <input type="hidden" name="action" value="create">
+      <label>Nombre<input name="name" required></label>
+      <label>Categoría<select name="type">{% for t in vehicle_types %}<option>{{t}}</option>{% endfor %}</select></label>
+      <label>Patente<input name="plate" required></label>
+      <label>Capacidad<input type="number" name="capacity" value="5"></label>
+      <label>Licencia requerida<input name="license_required" value="B"></label>
+      <label>Estado<select name="status"><option>Disponible</option><option>Mantención</option><option>Fuera de servicio</option></select></label>
+      <label>Marca / Modelo<input name="brand_model" placeholder="Ej.: Toyota Hilux"></label>
+      <label>Año<input name="year" placeholder="Ej.: 2023"></label>
+      <label>Base<input name="base" placeholder="Ej.: Antofagasta Centro"></label>
+      <label class="wide">Faenas acreditadas (separadas por coma)<input name="accredited_sites" placeholder="Ej.: Escondida, Spence"></label>
+      <button class="wide">Guardar vehículo</button>
+    </form>
+  </details>
+</section>
 
-{% for category in ['Camioneta','Camión','Bus','Maquinaria'] %}
-<section class="panel vehicle-category"><div class="panel-head"><div><h2>{{category|upper}}</h2><p>Unidades registradas en esta categoría.</p></div><span class="category-count">{{rows|selectattr('type','equalto',category)|list|length}} unidades</span></div><div class="cards">
-{% for v in rows if v.type==category %}<article class="resource"><h3>{{v.name}}</h3><p>{{v.plate}} · Capacidad: {{v.capacity}} · Licencia: {{v.license_required}}</p><form method="post"><input type="hidden" name="vehicle_id" value="{{v.id}}"><label>Estado<select name="status">{% for s in ['Disponible','Ocupado','Mantención','Fuera de servicio'] %}<option {% if v.status==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select></label><label>Próxima mantención<input type="date" name="maintenance_due" value="{{v.maintenance_due}}"></label><button>Guardar</button></form></article>{% else %}<div class="empty-state">No hay vehículos registrados en esta categoría.</div>{% endfor %}
-</div></section>
+<section class="panel operators-calendar-panel">
+  <div class="panel-head"><div><h2>CALENDARIO DE USO DE VEHÍCULOS</h2><p>Visualiza qué operador utilizó cada vehículo, por horario, actividad y faena.</p></div></div>
+
+  <div class="calendar-toolbar">
+    <div class="calendar-nav">
+      <a class="btn outline" href="{{url_for('vehicles_view',view=view)}}">Hoy</a>
+      <a class="nav-arrow" href="{{url_for('vehicles_view',view=view,anchor=prev_anchor,faena=faena_filter,tipo=type_filter,estado=estado_filter)}}">‹</a>
+      <span class="period-label">📅 {{period_label}}</span>
+      <a class="nav-arrow" href="{{url_for('vehicles_view',view=view,anchor=next_anchor,faena=faena_filter,tipo=type_filter,estado=estado_filter)}}">›</a>
+    </div>
+    <form method="get" class="view-picker">
+      <input type="hidden" name="anchor" value="{{anchor}}">
+      <input type="hidden" name="faena" value="{{faena_filter or ''}}">
+      <input type="hidden" name="tipo" value="{{type_filter or ''}}">
+      <input type="hidden" name="estado" value="{{estado_filter or ''}}">
+      <select name="view" onchange="this.form.submit()">
+        <option value="dia" {% if view=='dia' %}selected{% endif %}>Vista diaria</option>
+        <option value="semana" {% if view=='semana' %}selected{% endif %}>Vista semanal</option>
+        <option value="mes" {% if view=='mes' %}selected{% endif %}>Vista mensual</option>
+      </select>
+    </form>
+  </div>
+
+  <form method="get" class="calendar-filters">
+    <input type="hidden" name="view" value="{{view}}">
+    <label>Faena
+      <select name="faena" onchange="this.form.submit()">
+        <option value="">Todas las faenas</option>
+        {% for d in destinations %}<option value="{{d}}" {% if faena_filter==d %}selected{% endif %}>{{d}}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Tipo de vehículo
+      <select name="tipo" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        {% for t in vehicle_types %}<option value="{{t}}" {% if type_filter==t %}selected{% endif %}>{{t}}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Estado
+      <select name="estado" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        {% for e in estado_options %}<option value="{{e}}" {% if estado_filter==e %}selected{% endif %}>{{e}}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="calendar-legend">
+      {% for e in estado_options %}<span class="legend-item"><i class="legend-dot {{STATUS_CLASS.get(e,'')}}"></i>{{e}}</span>{% endfor %}
+    </div>
+  </form>
+
+  {% if view=='dia' %}
+  <div class="roster-grid-wrap">
+    <div class="gantt-grid" style="--total-slots:{{total_slots}}">
+      <div class="gantt-row gantt-head">
+        <div class="gantt-vehicle-col">Vehículo</div>
+        <div class="gantt-timeline gantt-head-timeline">
+          {% for hm in hour_marks %}<span class="hour-mark" style="grid-column:{{hm.slot}}">{{hm.label}}</span>{% endfor %}
+        </div>
+      </div>
+      {% for v in vehicles %}
+      <div class="gantt-row">
+        <a class="gantt-vehicle-col" href="{{url_for('vehicles_view',view=view,anchor=anchor,faena=faena_filter,tipo=type_filter,estado=estado_filter,selected_vehicle_id=v.id)}}">
+          <span class="vehicle-icon">{{ '🚚' if v.type=='Camión' else ('🚐' if v.type=='Bus' else ('🚜' if v.type=='Maquinaria' else '🛻')) }}</span>
+          <div>
+            <b>{{v.name}}</b>
+            <small>{{v.plate}}</small>
+            <span class="mini-status"><i class="legend-dot {{v.current_status_class}}"></i>{{v.current_status}}</span>
+          </div>
+        </a>
+        <div class="gantt-timeline">
+          {% set blocks = v.days.get(single_date, []) %}
+          {% for b in blocks %}
+          <a class="gantt-block {{b.status_class}}" style="grid-column:{{b.slot_start}}/{{b.slot_end}}"
+             href="{{url_for('vehicles_view',view=view,anchor=anchor,faena=faena_filter,tipo=type_filter,estado=estado_filter,selected_vehicle_id=v.id,selected_req_id=b.req_id or '')}}">
+            <b>{{b.start}} - {{b.end}}</b>
+            {% if b.operator_name %}<span>{{b.operator_name}}</span>{% endif %}
+            <small>{{b.type}}{% if b.destination %} · {{b.destination}}{% endif %}</small>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}<div class="empty-state">No hay vehículos para los filtros seleccionados.</div>{% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="roster-grid-wrap">
+    <div class="roster-grid" style="--day-count:{{period_dates|length}}">
+      <div class="roster-row roster-head">
+        <div class="roster-operator-col">Vehículo</div>
+        {% for d in period_dates %}<div class="roster-day-col {{'roster-today' if d.is_today}}"><small>{{d.weekday_short}}</small><b>{{d.day_num}}</b></div>{% endfor %}
+      </div>
+      {% for v in vehicles %}
+      <div class="roster-row">
+        <a class="roster-operator-col" href="{{url_for('vehicles_view',view=view,anchor=anchor,faena=faena_filter,tipo=type_filter,estado=estado_filter,selected_vehicle_id=v.id)}}">
+          <span class="avatar" style="background:#202225">{{ '🚚' if v.type=='Camión' else ('🚐' if v.type=='Bus' else ('🚜' if v.type=='Maquinaria' else '🛻')) }}</span>
+          <div>
+            <b>{{v.name}}</b>
+            <small>{{v.plate}}</small>
+            <span class="mini-status"><i class="legend-dot {{v.current_status_class}}"></i>{{v.current_status}}</span>
+          </div>
+        </a>
+        {% for d in period_dates %}
+        {% set day_blocks = v.days.get(d.iso, []) %}
+        <div class="roster-day-col {{'roster-today' if d.is_today}}">
+          {% if view=='mes' %}
+            {% if day_blocks %}<span class="status day-chip {{day_blocks[0].status_class}}" title="{{day_blocks|map(attribute='type')|join(', ')}}">{{day_blocks[0].status}}{% if day_blocks|length>1 %} +{{day_blocks|length-1}}{% endif %}</span>
+            {% else %}<span class="status day-chip status-available">Disponible</span>{% endif %}
+          {% else %}
+            {% if day_blocks %}{% for b in day_blocks %}<div class="day-block {{b.status_class}}"><b>{{b.start}} - {{b.end}}</b><span>{{b.operator_name or b.type}}</span><small>{{b.type}}{% if b.destination %} · {{b.destination}}{% endif %}</small></div>{% endfor %}
+            {% else %}<div class="day-block status-available"><span>Disponible</span></div>{% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty-state">No hay vehículos para los filtros seleccionados.</div>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<div class="vehicle-detail-grid">
+  <section class="panel">
+    <div class="panel-head"><div><h2>DETALLE DEL USO SELECCIONADO</h2></div></div>
+    {% if selected_block %}
+    <div class="usage-detail">
+      <div><b>Operador</b><span>{{selected_block.operator_name or 'Sin operador'}}</span></div>
+      <div><b>Horario</b><span>{{(selected_block.assigned_start or selected_block.need_at)[11:16]}} - {{(selected_block.assigned_end or selected_block.need_at)[11:16]}}</span></div>
+      <div><b>Actividad</b><span>{{selected_block.type}}</span></div>
+      <div><b>Duración</b><span>{{selected_block.duration_min+selected_block.travel_min}} min</span></div>
+      <div><b>Faena</b><span>{{selected_block.destination}}</span></div>
+      <div><b>Estado</b><span class="status {{STATUS_CLASS.get(selected_block.status,'')}}">{{selected_block.status}}</span></div>
+    </div>
+    {% elif selected_vehicle %}
+    <div class="usage-detail">
+      <div><b>Vehículo</b><span>{{selected_vehicle.name}}</span></div>
+      <div><b>Estado actual</b><span class="status {{selected_vehicle.current_status_class}}">{{selected_vehicle.current_status}}</span></div>
+    </div>
+    <div class="empty-state">Sin actividad asignada en este momento.</div>
+    {% else %}<div class="empty-state">Seleccione un vehículo para ver el detalle.</div>{% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><h2>INFORMACIÓN DEL VEHÍCULO</h2></div>{% if selected_vehicle %}<button type="button" class="icon-btn" title="Editar" onclick="document.getElementById('editveh-{{selected_vehicle.id}}').showModal()">✎</button>{% endif %}</div>
+    {% if selected_vehicle %}
+    <div class="vehicle-info-grid">
+      <div><b>Nombre</b><span>{{selected_vehicle.name}}</span></div>
+      <div><b>Patente</b><span>{{selected_vehicle.plate}}</span></div>
+      <div><b>Tipo</b><span>{{selected_vehicle.type}} · {{selected_vehicle.capacity}} pax/carga</span></div>
+      <div><b>Marca / Modelo</b><span>{{selected_vehicle.brand_model or 'No informado'}}</span></div>
+      <div><b>Año</b><span>{{selected_vehicle.year or 'No informado'}}</span></div>
+      <div><b>Base</b><span>{{selected_vehicle.base or 'No informada'}}</span></div>
+    </div>
+    <div class="vehicle-info-sites">
+      <b>Faenas acreditadas</b>
+      {% for s in selected_vehicle.sites_shown %}<span class="site-chip">✓ {{s}}</span>{% endfor %}
+      {% if selected_vehicle.sites_extra %}<span class="site-chip site-chip-more">+{{selected_vehicle.sites_extra}}</span>{% endif %}
+      {% if not selected_vehicle.sites_shown %}<span class="empty-inline">Sin información</span>{% endif %}
+    </div>
+    <div class="vehicle-info-status"><b>Estado actual</b><span class="status {{selected_vehicle.current_status_class}}">{{selected_vehicle.current_status}}</span></div>
+    {% else %}<div class="empty-state">No hay vehículos registrados.</div>{% endif %}
+  </section>
+</div>
+
+{% for v in all_vehicles %}
+<dialog id="editveh-{{v.id}}" class="operator-modal">
+  <div class="modal-head"><h3>Editar {{v.name}}</h3><button type="button" class="modal-close" onclick="this.closest('dialog').close()">✕</button></div>
+  <form method="post" class="edit-operator-form">
+    <input type="hidden" name="action" value="update"><input type="hidden" name="vehicle_id" value="{{v.id}}">
+    <input type="hidden" name="view" value="{{view}}"><input type="hidden" name="anchor" value="{{anchor}}">
+    <label>Nombre<input name="name" value="{{v.name}}" required></label>
+    <label>Categoría<select name="type">{% for t in vehicle_types %}<option {% if v.type==t %}selected{% endif %}>{{t}}</option>{% endfor %}</select></label>
+    <label>Patente<input name="plate" value="{{v.plate}}" required></label>
+    <label>Capacidad<input type="number" name="capacity" value="{{v.capacity}}"></label>
+    <label>Licencia requerida<input name="license_required" value="{{v.license_required}}"></label>
+    <label>Estado<select name="status">{% for s in ['Disponible','Mantención','Fuera de servicio'] %}<option {% if v.status==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select></label>
+    <label>Próxima mantención<input type="date" name="maintenance_due" value="{{v.maintenance_due}}"></label>
+    <label>Marca / Modelo<input name="brand_model" value="{{v.brand_model}}"></label>
+    <label>Año<input name="year" value="{{v.year}}"></label>
+    <label>Base<input name="base" value="{{v.base}}"></label>
+    <label>Faenas acreditadas<input name="accredited_sites" value="{{v.accredited_sites}}"></label>
+    <button>Guardar</button>
+  </form>
+  <form method="post" class="edit-operator-form exception-form">
+    <input type="hidden" name="action" value="exception"><input type="hidden" name="vehicle_id" value="{{v.id}}">
+    <input type="hidden" name="view" value="{{view}}"><input type="hidden" name="anchor" value="{{anchor}}">
+    <small class="exception-title">Mantención / Fuera de servicio</small>
+    <label>Tipo<select name="type">{% for t in exception_types %}<option>{{t}}</option>{% endfor %}</select></label>
+    <label>Desde<input type="date" name="start_date" required></label>
+    <label>Hasta<input type="date" name="end_date" required></label>
+    <label>Hora inicio<input type="time" name="start_time" value="00:00"></label>
+    <label>Hora término<input type="time" name="end_time" value="23:59"></label>
+    <label>Etiqueta (opcional)<input name="label" placeholder="Ej.: Mantención programada"></label>
+    <button>Registrar</button>
+  </form>
+  <form method="post" action="{{url_for('delete_vehicle',vehicle_id=v.id)}}" class="modal-delete-form" onsubmit="return confirm('¿Eliminar este vehículo?')">
+    <button type="submit" class="danger">Eliminar vehículo</button>
+  </form>
+</dialog>
 {% endfor %}
 {% endblock %}

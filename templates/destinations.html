@@ -8,6 +8,8 @@
     <label>Categoría<select name="category"><option>Faena</option><option>Base</option><option>Cliente</option><option>Proveedor</option><option>Otro</option></select></label>
     <label class="wide">Dirección completa<input name="address" placeholder="Ej.: Ruta B-385, Región de Antofagasta"></label>
     <label class="wide">Link de Google Maps<input type="url" name="maps_url" placeholder="https://maps.google.com/..." required></label>
+    <label class="wide">Coordenadas exactas (opcional)<input name="coordinates" placeholder="Ej.: -23.3914720, -69.0932280"></label>
+    <p class="form-hint wide">Si la dirección es muy genérica, el cálculo de ruta puede fallar. Para asegurar precisión, abra el destino en Google Maps, haga clic derecho sobre el punto exacto y copie las coordenadas que aparecen arriba del menú.</p>
     <input type="hidden" name="active" value="1">
     <button class="wide">+ Guardar destino</button>
   </form>
@@ -17,12 +19,14 @@
   <div class="destination-list">
   {% for d in rows %}
     <article class="destination-card {{'inactive-destination' if not d.active}}">
+      <span class="coord-badge {{'coord-ok' if d.lat is not none else 'coord-missing'}}">{{'Coordenadas OK' if d.lat is not none else 'Sin coordenadas exactas'}}</span>
       <form method="post" class="destination-edit-form">
         <input type="hidden" name="destination_id" value="{{d.id}}">
         <label>Nombre<input name="name" value="{{d.name}}" required></label>
         <label>Categoría<select name="category">{% for c in ['Faena','Base','Cliente','Proveedor','Otro'] %}<option {{'selected' if d.category==c}}>{{c}}</option>{% endfor %}</select></label>
         <label class="wide">Dirección<input name="address" value="{{d.address}}"></label>
         <label class="wide">Link Google Maps<input type="url" name="maps_url" value="{{d.maps_url}}" required></label>
+        <label class="wide">Coordenadas exactas (opcional)<input name="coordinates" value="{{'%s, %s'|format(d.lat,d.lng) if d.lat is not none else ''}}" placeholder="Ej.: -23.3914720, -69.0932280"></label>
         <label>Estado<select name="active"><option value="1" {{'selected' if d.active}}>Activo</option><option value="0" {{'selected' if not d.active}}>Inactivo</option></select></label>
         <div class="destination-actions"><a class="btn outline" href="{{d.maps_url}}" target="_blank" rel="noopener">Abrir mapa</a><button>Guardar cambios</button></div>
       </form>

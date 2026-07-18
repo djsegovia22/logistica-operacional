@@ -3,6 +3,18 @@
 {% block content %}
 <section class="panel operator-agenda-panel">
   <div class="panel-head"><h2>AGENDA DEL DÍA</h2></div>
+  {% if operators is not none %}
+  <form method="get" class="operator-picker">
+    <label>Seleccione un operador
+      <select name="operator_id" onchange="this.form.submit()">
+        <option value="">— Elegir operador —</option>
+        {% for o in operators %}<option value="{{o.id}}" {% if selected_operator and selected_operator.id==o.id %}selected{% endif %}>{{o.name}} · {{o.status}}</option>{% endfor %}
+      </select>
+    </label>
+  </form>
+  {% if not selected_operator %}<div class="empty-state">Seleccione un operador para ver su agenda.</div>{% endif %}
+  {% endif %}
+  {% if operators is none or selected_operator %}
   <div class="timeline">
   {% for r in rows %}
     <article class="timeline-item">
@@ -13,6 +25,8 @@
           <p><b>Origen:</b> {{r.origin}}</p>
           <p><b>Destino:</b> {{r.destination}}</p>{% if r.destination_address %}<p><b>Dirección:</b> {{r.destination_address}}</p>{% endif %}
           <a class="maps-button" href="{{r.destination_maps_url or ('https://www.google.com/maps/dir/?api=1&origin=' ~ (r.origin|urlencode) ~ '&destination=' ~ (r.destination|urlencode) ~ '&travelmode=driving')}}" target="_blank" rel="noopener">📍 Abrir ruta en Google Maps</a>
+          {% if r.controller_note %}<p class="controller-note"><b>Observación del administrador:</b> {{r.controller_note}}</p>{% endif %}
+          {% if r.document_name %}<a class="maps-button" href="{{url_for('view_document',req_id=r.id)}}" target="_blank" rel="noopener">📎 Ver documento adjunto</a>{% endif %}
         </div>
         <div><p><b>Vehículo:</b> {{r.vehicle_name or 'Sin vehículo informado'}}</p><p><b>Solicitante:</b> {{r.requester}}</p><p><b>Prioridad:</b> <span class="priority-chip p{{ r.priority }}">{{ PRIORITY_LABEL.get(r.priority,r.priority) }}</span></p></div>
         <div class="agenda-actions">
@@ -26,10 +40,18 @@
             <button class="finish-job-button">FINALIZAR ACTIVIDAD</button>
           </form>
           {% endif %}
+          {% if operators is not none %}
+          <form method="post" action="{{url_for('revert_to_pending')}}" onsubmit="return confirm('¿Devolver este requerimiento a Pendiente? Se quitará el operador y vehículo asignado.')">
+            <input type="hidden" name="req_id" value="{{r.id}}">
+            <input type="hidden" name="next" value="{{request.full_path}}">
+            <button type="submit" class="revert-button">↩ Devolver a pendientes</button>
+          </form>
+          {% endif %}
         </div>
       </div>
     </article>
   {% else %}<div class="empty-state">No hay actividades asignadas.</div>{% endfor %}
   </div>
+  {% endif %}
 </section>
 {% endblock %}

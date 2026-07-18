@@ -10,17 +10,18 @@
     <a class="btn" href="{{ url_for('new_requirement') }}">+ Nuevo requerimiento</a>
   </div>
 
-  {% set groups = [('Pendiente','PENDIENTES'),('Asignado','ASIGNADOS'),('En ejecución','EN EJECUCIÓN'),('Cancelado','CANCELADOS Y RECHAZADOS')] %}
+  {% set groups = [('Revisión y confirme','REQUIEREN REVISIÓN'),('Pendiente','PENDIENTES'),('Asignado','ASIGNADOS'),('En ejecución','EN EJECUCIÓN'),('Cancelado','CANCELADOS Y RECHAZADOS')] %}
   <div class="requirements-board compact-board visual-table-board">
   {% for key,title in groups %}
     {% if key=='Cancelado' %}{% set section_rows=rows|selectattr('status','in',['Cancelado','Rechazado'])|list %}{% else %}{% set section_rows=rows|selectattr('status','equalto',key)|list %}{% endif %}
+    {% if key!='Revisión y confirme' or section_rows %}
     <section class="requirement-group group-{{ key|lower|replace(' ','-')|replace('ó','o') }}">
       <div class="requirement-group-head"><h3>{{ title }}</h3><span>{{ section_rows|length }}</span></div>
       {% if section_rows %}
       <div class="req-table-wrap">
         <div class="req-line req-line-head req-line-v6"><span>FECHA SOLICITUD</span><span>TIPO SOLICITUD</span><span>SOLICITANTE</span><span>FAENA / DESTINO</span><span>FECHA NECESIDAD</span><span>PRIORIDAD</span><span>OPERADOR</span><span>ESTADO</span><span>ACCIÓN</span></div>
         {% for r in section_rows %}
-        {% set status_class={'Pendiente':'status-pending','Asignado':'status-assigned','En ejecución':'status-running','Cancelado':'status-cancelled','Rechazado':'status-cancelled'}.get(r.status,'') %}
+        {% set status_class=STATUS_CLASS.get(r.status,'') %}
         <details class="req-row {{ status_class }}">
           <summary class="req-line req-line-v6">
             <span><b>{{ r.created_at[:10] if r.created_at else '-' }}</b><small>{{ r.created_at[11:16] if r.created_at else '' }}</small></span>
@@ -34,7 +35,20 @@
             <span class="open-detail">Gestionar ▾</span>
           </summary>
           <div class="req-detail-drawer req-detail-v6">
-            <div class="req-detail-info"><div><b>Descripción</b><span>{{ r.description or 'Sin descripción' }}</span></div><div><b>Traslado estimado</b><span>{{ r.travel_min }} min{% if r.travel_distance_km %} · {{ r.travel_distance_km }} km{% endif %}</span></div><div><b>Tiempo total</b><span>{{ r.duration_min+r.travel_min }} min</span></div></div>
+            {% if r.status=='Revisión y confirme' %}<div class="notice review-notice"><b>Requiere revisión:</b> {{ r.controller_note or 'Verifique los datos de la solicitud antes de asignarla.' }}</div>{% endif %}
+            <div class="req-detail-info">
+              <div><b>Descripción</b><span>{{ r.description or 'Sin descripción' }}</span></div>
+              <div><b>Traslado estimado</b><span>{{ r.travel_min }} min{% if r.travel_distance_km %} · {{ r.travel_distance_km }} km{% endif %}</span></div>
+              <div><b>Tiempo total</b><span>{{ r.duration_min+r.travel_min }} min</span></div>
+              <div class="doc-upload-cell">
+                <b>Documento</b>
+                {% if r.document_name %}<span><a href="{{ url_for('view_document',req_id=r.id) }}" target="_blank" rel="noopener">📎 {{ r.document_name }}</a></span>{% else %}<span>Sin documento</span>{% endif %}
+                <form method="post" action="{{ url_for('upload_document',req_id=r.id) }}" enctype="multipart/form-data" class="doc-upload-form">
+                  <input type="file" name="document" required>
+                  <button type="submit">{{ 'Reemplazar' if r.document_name else 'Cargar' }}</button>
+                </form>
+              </div>
+            </div>
             <form class="single-save-form" method="post" action="{{ url_for('save_requirement',req_id=r.id) }}">
               <div class="single-save-grid">
                 <label>Prioridad<select name="priority">{% for n,l in PRIORITY_LABEL.items() %}<option value="{{n}}" {% if r.priority==n %}selected{% endif %}>{{l}}</option>{% endfor %}</select></label>
@@ -64,6 +78,7 @@
       </div>
       {% else %}<div class="empty-state">No hay requerimientos en este estado.</div>{% endif %}
     </section>
+    {% endif %}
   {% endfor %}
   </div>
 </section>

@@ -44,13 +44,13 @@
         {% for r in recent %}
         <tr>
           <td>{{ r.created_at|replace('T',' ') }}</td>
-          <td><b>{{ r.type }}</b></td>
+          <td><b>{{ TYPE_ICON.get(r.type,'') }} {{ r.type }}</b></td>
           <td>{{ r.requester }}</td>
           <td>{{ r.need_at|replace('T',' ') }}</td>
           <td><span class="pill p{{ r.priority }}">{{ PRIORITY_LABEL[r.priority] }}</span></td>
           <td>{{ r.origin }}</td>
           <td>{{ r.destination }}</td>
-          <td><span class="status">{{ r.status }}</span></td>
+          <td><span class="status {{ STATUS_CLASS.get(r.status,'') }}">{{ r.status }}</span></td>
         </tr>
         {% else %}
         <tr>

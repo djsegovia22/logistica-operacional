@@ -6,6 +6,9 @@ design.db
 # Variables de entorno / secretos
 .env
 
+# Documentos adjuntos a requerimientos (se generan al usar la app)
+uploads/
+
 # Python
 __pycache__/
 *.pyc
