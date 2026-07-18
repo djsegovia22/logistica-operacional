@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block page_heading %}MI AGENDA{% endblock %}
+{% block content %}
+<section class="panel operator-agenda-panel">
+  <div class="panel-head"><h2>AGENDA DEL DÍA</h2></div>
+  <div class="timeline">
+  {% for r in rows %}
+    <article class="timeline-item">
+      <div class="timeline-time"><b>{{r.assigned_start[11:16]}}</b><span>{{r.assigned_end[11:16]}}</span></div>
+      <div class="timeline-card operator-job-card">
+        <div>
+          <h3>{{r.type}}</h3>
+          <p><b>Origen:</b> {{r.origin}}</p>
+          <p><b>Destino:</b> {{r.destination}}</p>{% if r.destination_address %}<p><b>Dirección:</b> {{r.destination_address}}</p>{% endif %}
+          <a class="maps-button" href="{{r.destination_maps_url or ('https://www.google.com/maps/dir/?api=1&origin=' ~ (r.origin|urlencode) ~ '&destination=' ~ (r.destination|urlencode) ~ '&travelmode=driving')}}" target="_blank" rel="noopener">📍 Abrir ruta en Google Maps</a>
+        </div>
+        <div><p><b>Vehículo:</b> {{r.vehicle_name or 'Sin vehículo informado'}}</p><p><b>Solicitante:</b> {{r.requester}}</p><p><b>Prioridad:</b> <span class="priority-chip p{{ r.priority }}">{{ PRIORITY_LABEL.get(r.priority,r.priority) }}</span></p></div>
+        <div class="agenda-actions">
+          <span class="status {{'status-assigned' if r.status=='Asignado' else 'status-running'}}">{{r.status}}</span>
+          <a class="outline contact-button" href="https://wa.me/{{r.requester_phone|replace('+','')}}" target="_blank" rel="noopener">Contactar solicitante</a>
+          {% if r.status=='Asignado' %}
+          <form method="post" action="{{url_for('start_job',req_id=r.id)}}"><button class="start-job-button">INICIAR ACTIVIDAD</button></form>
+          {% else %}
+          <form class="finish-form" method="post" action="{{url_for('conclude',req_id=r.id)}}">
+            <input name="incident" placeholder="Incidencia u observación (opcional)">
+            <button class="finish-job-button">FINALIZAR ACTIVIDAD</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+  {% else %}<div class="empty-state">No hay actividades asignadas.</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

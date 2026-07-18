@@ -1,0 +1,18 @@
+# Base de datos local (se genera sola al ejecutar la app)
+design.db
+*.db
+*.sqlite3
+
+# Variables de entorno / secretos
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor / SO
+.vscode/
+.idea/
+Thumbs.db

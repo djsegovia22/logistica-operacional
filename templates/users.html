@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block page_heading %}USUARIOS{% endblock %}
+{% block content %}
+<section class="panel user-create-panel">
+  <div class="panel-head"><div><h2>CREAR NUEVO USUARIO</h2><p>Acceso exclusivo del administrador.</p></div></div>
+  <form method="post" class="form-grid user-create-form" id="userCreateForm">
+    <label>Nombre completo<input name="name" required></label>
+    <label>Correo electrónico<input type="email" name="email" required></label>
+    <label>Teléfono<input name="phone"></label>
+    <label>Contraseña inicial<input name="password" value="1234" required></label>
+    <label>Tipo de usuario<select name="role" id="roleSelect">{% for role in USER_ROLES %}<option value="{{ role }}">{{ role }}{% if role != "Operador" %} · Prioridad {{ PRIORITY_LABEL.get(PRIORITY_BY_ROLE.get(role), "—") }}{% endif %}</option>{% endfor %}</select></label>
+    <div class="operator-extra" id="operatorExtra">
+      <label>Licencias<input name="licenses" value="B" placeholder="B,A4,D"></label>
+      <label>Base<input name="base" value="Antofagasta Centro"></label>
+      <label>Faenas acreditadas<input name="accredited_sites" placeholder="SQM, Albemarle, Sierra Gorda"></label>
+      <label>Turno / detalle<input name="detail" placeholder="Ej.: Turno A"></label>
+    </div>
+    <button class="wide">+ Crear usuario</button>
+  </form>
+</section>
+<section class="panel"><div class="panel-head"><div><h2>USUARIOS REGISTRADOS</h2><p>Listado de cuentas y permisos del sistema.</p></div></div>
+<div class="table-wrap"><table><thead><tr><th>NOMBRE</th><th>CORREO</th><th>ROL</th><th>TELÉFONO</th><th>INFORMACIÓN OPERADOR</th><th>ACCIONES</th></tr></thead><tbody>
+{% for u in rows %}<tr><td><b>{{u.name}}</b></td><td>{{u.email}}</td><td><span class="role-badge">{{u.role}}</span></td><td>{{u.phone or '—'}}</td><td>{% if u.role=='Operador' %}{{u.operator_status}} · Licencias {{u.licenses}} · {{u.base}}<br><small>{{u.accredited_sites or 'Sin faenas registradas'}}</small>{% else %}—{% endif %}</td><td><div class="row-actions"><a class="btn outline" href="{{url_for('edit_user',user_id=u.id)}}">Editar</a><form method="post" action="{{url_for('delete_user',user_id=u.id)}}" onsubmit="return confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')"><button class="danger">Eliminar</button></form></div></td></tr>{% endfor %}
+</tbody></table></div></section>
+<script>
+const role=document.getElementById('roleSelect'), extra=document.getElementById('operatorExtra');
+function toggleOperator(){extra.style.display=role.value==='Operador'?'grid':'none'}
+role.addEventListener('change',toggleOperator);toggleOperator();
+</script>
+{% endblock %}

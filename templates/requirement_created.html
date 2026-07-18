@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block page_heading %}REQUERIMIENTO CREADO{% endblock %}
+{% block content %}
+<section class="created-confirmation">
+  <div class="created-check">✓</div>
+  <p class="created-kicker">REGISTRO EXITOSO</p>
+  <h2>¡EL REQUERIMIENTO FUE CREADO CORRECTAMENTE!</h2>
+  <p class="created-message">La solicitud ya quedó registrada en el sistema con estado <b>Pendiente</b>.</p>
+
+  <div class="created-summary">
+    <div><small>TIPO DE SOLICITUD</small><strong>{{ req.type }}</strong></div>
+    <div><small>SOLICITANTE</small><strong>{{ req.requester }}</strong></div>
+    <div><small>FECHA DE NECESIDAD</small><strong>{{ req.need_at|replace('T',' ') }}</strong></div>
+    <div><small>RECORRIDO</small><strong>{{ req.origin }} → {{ req.destination }}</strong></div><div><small>TIEMPO ESTIMADO</small><strong>{{ req.travel_min }} min{% if req.travel_distance_km %} · {{ req.travel_distance_km }} km{% endif %}</strong></div><div><small>PRIORIDAD</small><strong>{{ PRIORITY_LABEL.get(req.priority,req.priority) }}</strong></div>
+  </div>
+
+  <div class="created-actions">
+    <a class="outline" href="{{ url_for('new_requirement') }}">Crear otro requerimiento</a>
+    <a class="btn" href="{{ url_for('requirements_panel') if current_user.role=='Administrador' else url_for('my_requests') }}">Ver requerimientos</a>
+  </div>
+</section>
+{% endblock %}

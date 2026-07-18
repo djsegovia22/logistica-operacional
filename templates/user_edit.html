@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block page_heading %}EDITAR USUARIO{% endblock %}
+{% block content %}
+<section class="panel user-create-panel">
+  <div class="panel-head"><div><h2>EDITAR DATOS DE USUARIO</h2><p>Actualice la cuenta, permisos y datos operacionales.</p></div><a class="btn outline" href="{{url_for('users_view')}}">← Volver</a></div>
+  <form method="post" class="form-grid user-create-form">
+    <label>Nombre completo<input name="name" value="{{user.name}}" required></label>
+    <label>Correo electrónico<input type="email" name="email" value="{{user.email}}" required></label>
+    <label>Teléfono<input name="phone" value="{{user.phone or ''}}"></label>
+    <label>Nueva contraseña <small>Dejar en blanco para mantenerla</small><input name="password" type="password"></label>
+    <label>Tipo de usuario<select name="role" id="roleSelect">{% for role in USER_ROLES %}<option value="{{ role }}" {% if user.role==role %}selected{% endif %}>{{ role }}{% if role != "Operador" %} · Prioridad {{ PRIORITY_LABEL.get(PRIORITY_BY_ROLE.get(role), "—") }}{% endif %}</option>{% endfor %}</select></label>
+    <div class="operator-extra" id="operatorExtra">
+      <label>Estado<select name="operator_status"><option {{'selected' if user.operator_status=='Habilitado'}}>Habilitado</option><option {{'selected' if user.operator_status=='Permiso administrativo'}}>Permiso administrativo</option><option {{'selected' if user.operator_status=='En faena'}}>En faena</option><option {{'selected' if user.operator_status=='Ausente'}}>Ausente</option></select></label>
+      <label>Licencias<input name="licenses" value="{{user.licenses or 'B'}}"></label>
+      <label>Base<input name="base" value="{{user.base or 'Antofagasta Centro'}}"></label>
+      <label>Faenas acreditadas<input name="accredited_sites" value="{{user.accredited_sites or ''}}"></label>
+      <label>Turno / detalle<input name="detail" value="{{user.detail or ''}}"></label>
+    </div>
+    <button class="wide">Guardar cambios</button>
+  </form>
+</section>
+<script>
+const role=document.getElementById('roleSelect'), extra=document.getElementById('operatorExtra');
+function toggleOperator(){extra.style.display=role.value==='Operador'?'grid':'none'}
+role.addEventListener('change',toggleOperator);toggleOperator();
+</script>
+{% endblock %}

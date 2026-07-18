@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block page_heading %}DESTINOS Y GOOGLE MAPS{% endblock %}
+{% block content %}
+<section class="panel destination-create-panel">
+  <div class="panel-head"><div><h2>AGREGAR DESTINO</h2><p>Registre direcciones y enlaces oficiales de Google Maps para las rutas del operador.</p></div></div>
+  <form method="post" class="form-grid">
+    <label>Nombre del destino<input name="name" placeholder="Ej.: Faena SQM" required></label>
+    <label>Categoría<select name="category"><option>Faena</option><option>Base</option><option>Cliente</option><option>Proveedor</option><option>Otro</option></select></label>
+    <label class="wide">Dirección completa<input name="address" placeholder="Ej.: Ruta B-385, Región de Antofagasta"></label>
+    <label class="wide">Link de Google Maps<input type="url" name="maps_url" placeholder="https://maps.google.com/..." required></label>
+    <input type="hidden" name="active" value="1">
+    <button class="wide">+ Guardar destino</button>
+  </form>
+</section>
+<section class="panel">
+  <div class="panel-head"><div><h2>DESTINOS REGISTRADOS</h2><p>Los enlaces se usarán en la agenda del operador.</p></div></div>
+  <div class="destination-list">
+  {% for d in rows %}
+    <article class="destination-card {{'inactive-destination' if not d.active}}">
+      <form method="post" class="destination-edit-form">
+        <input type="hidden" name="destination_id" value="{{d.id}}">
+        <label>Nombre<input name="name" value="{{d.name}}" required></label>
+        <label>Categoría<select name="category">{% for c in ['Faena','Base','Cliente','Proveedor','Otro'] %}<option {{'selected' if d.category==c}}>{{c}}</option>{% endfor %}</select></label>
+        <label class="wide">Dirección<input name="address" value="{{d.address}}"></label>
+        <label class="wide">Link Google Maps<input type="url" name="maps_url" value="{{d.maps_url}}" required></label>
+        <label>Estado<select name="active"><option value="1" {{'selected' if d.active}}>Activo</option><option value="0" {{'selected' if not d.active}}>Inactivo</option></select></label>
+        <div class="destination-actions"><a class="btn outline" href="{{d.maps_url}}" target="_blank" rel="noopener">Abrir mapa</a><button>Guardar cambios</button></div>
+      </form>
+      <form method="post" action="{{url_for('delete_destination',destination_id=d.id)}}" onsubmit="return confirm('¿Eliminar o desactivar este destino?')"><button class="danger destination-delete">Eliminar</button></form>
+    </article>
+  {% else %}<div class="empty-state">No hay destinos registrados.</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

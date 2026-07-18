@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block page_heading %}CALENDARIO{% endblock %}
+{% block content %}
+<section class="panel finalized-calendar">
+  <div class="panel-head"><div><h2>REGISTRO DE REQUERIMIENTOS FINALIZADOS</h2><p>Historial ordenado por día. Cada fila corresponde a una jornada.</p></div><form method="get" class="inline-filter"><input type="month" name="month" value="{{month}}"><button>Ver mes</button></form></div>
+  <div class="day-register">
+  {% for day, items in grouped.items() %}
+    <section class="day-row">
+      <div class="day-label"><b>{{day[8:10]}}</b><span>{{day[5:7]}} / {{day[:4]}}</span><small>{{items|length}} finalizado{{'' if items|length==1 else 's'}}</small></div>
+      <div class="day-items">
+      {% for r in items %}
+        <article class="finalized-card">
+          <div class="finalized-head"><small>REQ-{{'%04d'|format(r.id)}}</small><span class="status status-done">Finalizado</span></div>
+          <h3>{{r.type}}</h3>
+          <p>{{r.origin}} → {{r.destination}}</p>
+          <div class="finalized-meta"><span><b>Hora</b>{{(r.finished_at or r.assigned_end or r.need_at)[11:16]}}</span><span><b>Solicitante</b>{{r.requester}}</span><span><b>Operador</b>{{r.operator_name or 'Sin operador'}}</span><span><b>Vehículo</b>{{r.vehicle_name or 'Sin vehículo'}}</span></div>
+          {% if r.incident %}<p class="incident-note"><b>Observación:</b> {{r.incident}}</p>{% endif %}
+        </article>
+      {% endfor %}
+      </div>
+    </section>
+  {% else %}<div class="empty-state">No existen requerimientos finalizados durante el mes seleccionado.</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

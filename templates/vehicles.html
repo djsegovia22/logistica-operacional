@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block page_heading %}VEHÍCULOS{% endblock %}
+{% block content %}
+<section class="panel add-resource-panel"><div class="panel-head"><div><h2>AGREGAR VEHÍCULO</h2><p>Registre una nueva unidad antes de revisar la flota por categoría.</p></div></div><form method="post" class="form-grid"><label>Nombre<input name="name" required></label><label>Categoría<select name="type"><option>Camioneta</option><option>Camión</option><option>Bus</option><option>Maquinaria</option></select></label><label>Patente<input name="plate" required></label><label>Capacidad<input type="number" name="capacity" value="5"></label><label>Licencia requerida<input name="license_required" value="B"></label><label>Estado<select name="status"><option>Disponible</option><option>Mantención</option><option>Fuera de servicio</option></select></label><label>Próxima mantención<input type="date" name="maintenance_due"></label><button class="wide">+ Agregar vehículo</button></form></section>
+
+{% for category in ['Camioneta','Camión','Bus','Maquinaria'] %}
+<section class="panel vehicle-category"><div class="panel-head"><div><h2>{{category|upper}}</h2><p>Unidades registradas en esta categoría.</p></div><span class="category-count">{{rows|selectattr('type','equalto',category)|list|length}} unidades</span></div><div class="cards">
+{% for v in rows if v.type==category %}<article class="resource"><h3>{{v.name}}</h3><p>{{v.plate}} · Capacidad: {{v.capacity}} · Licencia: {{v.license_required}}</p><form method="post"><input type="hidden" name="vehicle_id" value="{{v.id}}"><label>Estado<select name="status">{% for s in ['Disponible','Ocupado','Mantención','Fuera de servicio'] %}<option {% if v.status==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select></label><label>Próxima mantención<input type="date" name="maintenance_due" value="{{v.maintenance_due}}"></label><button>Guardar</button></form></article>{% else %}<div class="empty-state">No hay vehículos registrados en esta categoría.</div>{% endfor %}
+</div></section>
+{% endfor %}
+{% endblock %}

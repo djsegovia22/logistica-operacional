@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="kpis">
+  {% for label,val,sub in [
+    ('TOTAL REQUERIMIENTOS',stats.total,'Todos los estados'),
+    ('PENDIENTES',stats.pending,'Por asignar'),
+    ('ASIGNADOS',stats.assigned,'En operación'),
+    ('FINALIZADOS',stats.concluded,'Completados'),
+    ('PROGRAMADOS HOY',stats.scheduled_today,'Agenda del día')
+  ] %}
+  <article>
+    <i>◇</i>
+    <div>
+      <small>{{ label }}</small>
+      <b>{{ val }}</b>
+      <span>{{ sub }}</span>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>REQUERIMIENTOS RECIENTES</h2>
+    <a class="btn" href="{{ url_for('requirements_panel') }}">Ver todos</a>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>FECHA SOLICITUD</th>
+          <th>TIPO SOLICITUD</th>
+          <th>SOLICITANTE</th>
+          <th>FECHA NECESIDAD</th>
+          <th>PRIORIDAD</th>
+          <th>ORIGEN</th>
+          <th>DESTINO</th>
+          <th>ESTADO</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in recent %}
+        <tr>
+          <td>{{ r.created_at|replace('T',' ') }}</td>
+          <td><b>{{ r.type }}</b></td>
+          <td>{{ r.requester }}</td>
+          <td>{{ r.need_at|replace('T',' ') }}</td>
+          <td><span class="pill p{{ r.priority }}">{{ PRIORITY_LABEL[r.priority] }}</span></td>
+          <td>{{ r.origin }}</td>
+          <td>{{ r.destination }}</td>
+          <td><span class="status">{{ r.status }}</span></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center; padding:36px 16px;">
+            <strong>No existen requerimientos registrados.</strong><br>
+            <span>La información aparecerá aquí cuando se creen nuevas solicitudes.</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

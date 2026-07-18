@@ -1,0 +1,8 @@
+{% extends 'base.html' %}{% block page_heading %}REPORTES{% endblock %}{% block content %}
+{% if top_site %}<section class="panel top-site"><div><small>FAENA CON MÁS REQUERIMIENTOS</small><h2>{{top_site.site}}</h2><p>{{top_site.qty}} requerimientos registrados</p></div><div class="top-site-icon">⌖</div></section>{% endif %}
+<div class="report-grid">
+<section class="panel"><h2>Solicitudes por tipo</h2>{% set maxv=(by_type|map(attribute='qty')|max) if by_type else 1 %}{% for x in by_type %}<div class="bar-row"><span>{{x.type}}</span><div><i style="width:{{(x.qty/maxv*100)|int}}%"></i></div><b>{{x.qty}}</b></div>{% endfor %}</section>
+<section class="panel"><h2>Solicitudes por estado</h2>{% for x in by_status %}<div class="stat-line"><span>{{x.status}}</span><b>{{x.qty}}</b></div>{% endfor %}</section>
+<section class="panel"><h2>Desempeño de operadores</h2>{% for x in operators %}<div class="stat-line"><span>{{x.name}} · {{x.jobs}} actividades</span><b>★ {{x.rating or '—'}}</b></div>{% endfor %}</section>
+<section class="panel site-report"><h2>Requerimientos por faena</h2>{% set maxs=(by_site|map(attribute='qty')|max) if by_site else 1 %}{% for x in by_site %}<div class="bar-row"><span>{{x.site}}</span><div><i style="width:{{(x.qty/maxs*100)|int}}%"></i></div><b>{{x.qty}}</b></div>{% else %}<p>No existen requerimientos asociados a faenas.</p>{% endfor %}</section>
+</div>{% endblock %}

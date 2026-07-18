@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% block page_heading %}NUEVO REQUERIMIENTO{% endblock %}
+{% block content %}
+<section class="wizard-shell">
+  <div class="wizard-title">
+    <div>
+      <span class="eyebrow">CENTRO DE SOLICITUDES OPERACIONALES</span>
+      <h1>Crear nuevo requerimiento</h1>
+      <p>Complete los cinco pasos para registrar la solicitud.</p>
+    </div>
+    <div class="wizard-user"><small>SOLICITANTE</small><b>{{ current_user.name }}</b><span>{{ current_user.role }}</span></div>
+  </div>
+
+  <div class="wizard-progress" aria-label="Progreso del formulario">
+    <button type="button" class="step-tab active" data-step-target="1"><i>1</i><span>Servicio</span></button>
+    <div class="step-line"></div>
+    <button type="button" class="step-tab" data-step-target="2"><i>2</i><span>Información</span></button>
+    <div class="step-line"></div>
+    <button type="button" class="step-tab" data-step-target="3"><i>3</i><span>Recorrido</span></button>
+    <div class="step-line"></div>
+    <button type="button" class="step-tab" data-step-target="4"><i>4</i><span>Detalles</span></button>
+    <div class="step-line"></div>
+    <button type="button" class="step-tab" data-step-target="5"><i>5</i><span>Confirmar</span></button>
+  </div>
+
+  <form method="post" id="requestWizard" class="wizard-card" novalidate>
+    <input type="hidden" name="type" id="typeInput">
+    <input type="hidden" name="need_at" id="needAtInput">
+
+    <section class="wizard-step active" data-step="1">
+      <div class="step-heading"><span>PASO 1 DE 5</span><h2>¿Qué servicio necesita?</h2><p>Seleccione una categoría para continuar.</p></div>
+      <div class="service-grid">
+        {% set icons = ['👤','🚛','📦','🚐','🛠','🛻','🚚','🚜','📝','⚙','⚠'] %}
+        {% for x in types %}
+        <button class="service-card" type="button" data-service="{{ x }}">
+          <span class="service-icon">{{ icons[loop.index0] }}</span>
+          <b>{{ x }}</b>
+          <small>Seleccionar servicio</small>
+        </button>
+        {% endfor %}
+      </div>
+      <div class="field-error" id="typeError">Seleccione un tipo de requerimiento.</div>
+    </section>
+
+    <section class="wizard-step" data-step="2">
+      <div class="step-heading"><span>PASO 2 DE 5</span><h2>Información general</h2><p>Indique cuándo se necesita el servicio y su duración estimada.</p></div>
+      <div class="wizard-fields two-cols">
+        <label>Solicitante<input value="{{ current_user.name }}" disabled></label>
+        <label>Perfil<input value="{{ current_user.role }}" disabled></label><div class="info-box"><small>PRIORIDAD DEL PERFIL</small><b>{{ PRIORITY_LABEL.get(PRIORITY_BY_ROLE.get(current_user.role,2)) }}</b><span>Se asigna automáticamente según la jerarquía del usuario.</span></div>
+        <label>Fecha de la necesidad<input id="needDate" type="date" required></label>
+        <label>Hora de la necesidad<input id="needTime" type="time" required></label>
+        <label>Duración estimada (minutos)<input name="duration_min" id="durationInput" type="number" min="10" step="10" value="60" required></label>
+        <div class="info-box"><small>ANTICIPACIÓN MÍNIMA</small><b id="anticipationPreview">180 minutos</b><span>Equivale a 3 veces la duración estimada.</span></div>
+      </div>
+    </section>
+
+    <section class="wizard-step" data-step="3">
+      <div class="step-heading"><span>PASO 3 DE 5</span><h2>Origen y destino</h2><p>Seleccione el recorrido operacional.</p></div>
+      {% if not locations %}<div class="notice"><b>No hay direcciones disponibles.</b> Un administrador debe crear y activar destinos antes de ingresar un requerimiento.</div>{% endif %}<div class="route-layout">
+        <div class="wizard-fields">
+          <label>Origen<select name="origin" id="originInput" required><option value="">Seleccione origen</option>{% for x in locations %}<option value="{{ x.name }}" data-address="{{ x.address }}">{{ x.name }}{% if x.address %} — {{ x.address }}{% endif %}</option>{% endfor %}</select></label>
+          <div class="route-arrow">↓</div>
+          <label>Destino<select name="destination" id="destinationInput" required><option value="">Seleccione destino</option>{% for x in locations %}<option value="{{ x.name }}" data-address="{{ x.address }}">{{ x.name }}{% if x.address %} — {{ x.address }}{% endif %}</option>{% endfor %}</select></label>
+        </div>
+        <aside class="route-summary">
+          <small>TIEMPO DE TRASLADO ESTIMADO</small>
+          <strong id="travelPreview">—</strong>
+          <span id="routePreview">Seleccione origen y destino</span>
+        </aside>
+      </div>
+    </section>
+
+    <section class="wizard-step" data-step="4">
+      <div class="step-heading"><span>PASO 4 DE 5</span><h2>Detalles de la solicitud</h2><p>Agregue toda la información necesaria para coordinar correctamente.</p></div>
+      <div class="wizard-fields two-cols">
+        <label class="wide">Descripción<textarea name="description" id="descriptionInput" required placeholder="Explique claramente la necesidad, cantidad de personas, carga, referencias o instrucciones especiales."></textarea></label>
+        <label>Dimensiones de la carga (opcional)<input name="dimensions" id="dimensionsInput" placeholder="Ej.: 1,2 × 0,8 × 0,6 m"></label>
+        <label>Peso aproximado en kg (opcional)<input name="weight_kg" id="weightInput" type="number" min="0" step="0.1" placeholder="Ej.: 300"></label>
+        <div class="notice wide"><b>Importante:</b> la descripción debe permitir que el controlador comprenda y asigne el recurso sin solicitar antecedentes adicionales.</div>
+      </div>
+    </section>
+
+    <section class="wizard-step" data-step="5">
+      <div class="step-heading"><span>PASO 5 DE 5</span><h2>Revise y confirme</h2><p>Verifique los datos antes de crear el requerimiento.</p></div>
+      <div class="confirmation-layout">
+        <div class="confirmation-card">
+          <div class="confirmation-head"><span>RESUMEN DE LA SOLICITUD</span><b id="summaryPriority">PRIORIDAD MEDIA</b></div>
+          <dl>
+            <div><dt>Tipo</dt><dd id="summaryType">—</dd></div>
+            <div><dt>Solicitante</dt><dd>{{ current_user.name }}</dd></div>
+            <div><dt>Fecha y hora</dt><dd id="summaryDate">—</dd></div>
+            <div><dt>Duración actividad</dt><dd id="summaryDuration">—</dd></div>
+            <div><dt>Origen</dt><dd id="summaryOrigin">—</dd></div>
+            <div><dt>Destino</dt><dd id="summaryDestination">—</dd></div>
+            <div><dt>Traslado estimado</dt><dd id="summaryTravel">—</dd></div>
+            <div><dt>Tiempo total</dt><dd id="summaryTotal">—</dd></div>
+            <div class="wide"><dt>Descripción</dt><dd id="summaryDescription">—</dd></div>
+            <div><dt>Dimensiones</dt><dd id="summaryDimensions">No informado</dd></div>
+            <div><dt>Peso</dt><dd id="summaryWeight">No informado</dd></div>
+          </dl>
+        </div>
+        <aside class="confirmation-alert"><span>✓</span><h3>Listo para enviar</h3><p>Al confirmar, el requerimiento quedará registrado con estado <b>Pendiente</b>.</p></aside>
+      </div>
+    </section>
+
+    <div class="wizard-actions">
+      <button type="button" class="outline" id="prevBtn" disabled>← Anterior</button>
+      <span id="stepCounter">Paso 1 de 5</span>
+      <button type="button" id="nextBtn">Siguiente →</button>
+      <button type="submit" id="submitBtn" class="submit-request" hidden>Crear requerimiento</button>
+    </div>
+  </form>
+</section>
+
+<script>
+(() => {
+  const form = document.getElementById('requestWizard');
+  const steps = [...document.querySelectorAll('.wizard-step')];
+  const tabs = [...document.querySelectorAll('.step-tab')];
+  const nextBtn = document.getElementById('nextBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const typeInput = document.getElementById('typeInput');
+  const needAtInput = document.getElementById('needAtInput');
+  let current = 1;
+
+  const value = id => document.getElementById(id).value;
+  let routeEstimate = null;
+  let routeRequestToken = 0;
+  const travelMinutes = () => routeEstimate?.minutes ?? null;
+
+  function showStep(number) {
+    current = number;
+    steps.forEach(s => s.classList.toggle('active', Number(s.dataset.step)===current));
+    tabs.forEach((t,i) => {
+      t.classList.toggle('active', i+1===current);
+      t.classList.toggle('done', i+1<current);
+    });
+    prevBtn.disabled = current===1;
+    nextBtn.hidden = current===5;
+    submitBtn.hidden = current!==5;
+    document.getElementById('stepCounter').textContent=`Paso ${current} de 5`;
+    if (current===5) updateSummary();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function validateStep(step) {
+    if (step===1) {
+      const ok=Boolean(typeInput.value);
+      document.getElementById('typeError').classList.toggle('show',!ok);
+      return ok;
+    }
+    const section=document.querySelector(`.wizard-step[data-step="${step}"]`);
+    const required=[...section.querySelectorAll('[required]')];
+    let ok=true;
+    required.forEach(el => {
+      const valid=Boolean(String(el.value).trim()) && el.checkValidity();
+      el.classList.toggle('invalid',!valid);
+      if(!valid) ok=false;
+    });
+    return ok;
+  }
+
+  document.querySelectorAll('.service-card').forEach(card => card.addEventListener('click', () => {
+    document.querySelectorAll('.service-card').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected'); typeInput.value=card.dataset.service;
+    document.getElementById('typeError').classList.remove('show');
+  }));
+
+  nextBtn.addEventListener('click',()=>{ if(validateStep(current)) showStep(current+1); });
+  prevBtn.addEventListener('click',()=>showStep(current-1));
+  tabs.forEach((tab,i)=>tab.addEventListener('click',()=>{ const target=i+1; if(target<current) showStep(target); }));
+
+  async function updateRoute(){
+    const o=value('originInput'),d=value('destinationInput');
+    const os=document.getElementById('originInput'), ds=document.getElementById('destinationInput');
+    const ot=os.options[os.selectedIndex]?.text||o, dt=ds.options[ds.selectedIndex]?.text||d;
+    const preview=document.getElementById('travelPreview');
+    document.getElementById('routePreview').textContent=o&&d?`${ot} → ${dt}`:'Seleccione origen y destino';
+    routeEstimate=null;
+    if(!o || !d){ preview.textContent='—'; return; }
+    const token=++routeRequestToken;
+    preview.textContent='Calculando…';
+    try{
+      const response=await fetch(`{{ url_for('route_estimate_api') }}?origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(d)}`);
+      const data=await response.json();
+      if(token!==routeRequestToken) return;
+      if(!response.ok || !data.ok) throw new Error(data.error||'No se pudo calcular la ruta.');
+      routeEstimate=data;
+      preview.textContent=`${data.minutes} min · ${data.distance_km} km`;
+    }catch(error){
+      if(token!==routeRequestToken) return;
+      preview.textContent='No disponible';
+      document.getElementById('routePreview').textContent=error.message;
+    }
+  }
+  ['originInput','destinationInput'].forEach(id=>document.getElementById(id).addEventListener('change',updateRoute));
+  document.getElementById('durationInput').addEventListener('input',e=>{
+    const d=Number(e.target.value||0); document.getElementById('anticipationPreview').textContent=`${d*3} minutos`;
+  });
+
+  function updateSummary(){
+    const date=value('needDate'),time=value('needTime'),duration=Number(value('durationInput')||0),travel=travelMinutes()??0;
+    needAtInput.value=date&&time?`${date}T${time}`:'';
+    document.getElementById('summaryType').textContent=typeInput.value||'—';
+    document.getElementById('summaryDate').textContent=date&&time?new Date(`${date}T${time}`).toLocaleString('es-CL',{dateStyle:'medium',timeStyle:'short'}):'—';
+    document.getElementById('summaryDuration').textContent=`${duration} min`;
+    document.getElementById('summaryOrigin').textContent=value('originInput')||'—';
+    document.getElementById('summaryDestination').textContent=value('destinationInput')||'—';
+    document.getElementById('summaryTravel').textContent=routeEstimate?`${travel} min · ${routeEstimate.distance_km} km`:'Pendiente de cálculo';
+    document.getElementById('summaryTotal').textContent=`${duration+travel} min`;
+    document.getElementById('summaryDescription').textContent=value('descriptionInput')||'—';
+    document.getElementById('summaryDimensions').textContent=value('dimensionsInput')||'No informado';
+    document.getElementById('summaryWeight').textContent=value('weightInput')?`${value('weightInput')} kg`:'No informado';
+    const urgent=typeInput.value==='Urgencias';
+    document.getElementById('summaryPriority').textContent=urgent?'PRIORIDAD MÁXIMA':'PRIORIDAD {{ PRIORITY_LABEL.get(PRIORITY_BY_ROLE.get(current_user.role,2), "NORMAL")|upper }}';
+  }
+
+  form.addEventListener('submit',e=>{
+    if(!validateStep(4)){e.preventDefault();showStep(4);return;}
+    if(!routeEstimate){e.preventDefault();showStep(3);document.getElementById('travelPreview').textContent='Calcule una ruta válida antes de continuar';return;}
+    updateSummary();
+    if(!needAtInput.value){e.preventDefault();showStep(2);}
+  });
+
+  const now=new Date(); now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('needDate').min=now.toISOString().slice(0,10);
+  showStep(1);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block page_heading %}REQUERIMIENTOS{% endblock %}
+{% block content %}
+<section class="panel requirements-panel">
+  <div class="panel-head">
+    <div>
+      <h2>GESTIÓN DE REQUERIMIENTOS</h2>
+      <p>Modifique todos los datos necesarios y guarde una sola vez.</p>
+    </div>
+    <a class="btn" href="{{ url_for('new_requirement') }}">+ Nuevo requerimiento</a>
+  </div>
+
+  {% set groups = [('Pendiente','PENDIENTES'),('Asignado','ASIGNADOS'),('En ejecución','EN EJECUCIÓN'),('Cancelado','CANCELADOS Y RECHAZADOS')] %}
+  <div class="requirements-board compact-board visual-table-board">
+  {% for key,title in groups %}
+    {% if key=='Cancelado' %}{% set section_rows=rows|selectattr('status','in',['Cancelado','Rechazado'])|list %}{% else %}{% set section_rows=rows|selectattr('status','equalto',key)|list %}{% endif %}
+    <section class="requirement-group group-{{ key|lower|replace(' ','-')|replace('ó','o') }}">
+      <div class="requirement-group-head"><h3>{{ title }}</h3><span>{{ section_rows|length }}</span></div>
+      {% if section_rows %}
+      <div class="req-table-wrap">
+        <div class="req-line req-line-head req-line-v6"><span>FECHA SOLICITUD</span><span>TIPO SOLICITUD</span><span>SOLICITANTE</span><span>FAENA / DESTINO</span><span>FECHA NECESIDAD</span><span>PRIORIDAD</span><span>OPERADOR</span><span>ESTADO</span><span>ACCIÓN</span></div>
+        {% for r in section_rows %}
+        {% set status_class={'Pendiente':'status-pending','Asignado':'status-assigned','En ejecución':'status-running','Cancelado':'status-cancelled','Rechazado':'status-cancelled'}.get(r.status,'') %}
+        <details class="req-row {{ status_class }}">
+          <summary class="req-line req-line-v6">
+            <span><b>{{ r.created_at[:10] if r.created_at else '-' }}</b><small>{{ r.created_at[11:16] if r.created_at else '' }}</small></span>
+            <span class="req-main"><b>{{ r.type }}</b><small>{{ r.origin }}</small></span>
+            <span><b>{{ r.requester }}</b></span>
+            <span class="req-route"><b>{{ r.destination }}</b><small>{{ r.origin }} → {{ r.destination }}</small></span>
+            <span><b>{{ r.need_at[:10] if r.need_at else '-' }}</b><small>{{ r.need_at[11:16] if r.need_at else '' }}</small></span>
+            <span><span class="priority-chip p{{ r.priority }}">{{ PRIORITY_LABEL.get(r.priority,r.priority) }}</span></span>
+            <span class="req-assignment"><b>{{ r.operator_name or 'Sin asignar' }}</b><small>{{ r.vehicle_name or 'Sin vehículo' }}</small></span>
+            <span><span class="status {{ status_class }}">{{ r.status }}</span></span>
+            <span class="open-detail">Gestionar ▾</span>
+          </summary>
+          <div class="req-detail-drawer req-detail-v6">
+            <div class="req-detail-info"><div><b>Descripción</b><span>{{ r.description or 'Sin descripción' }}</span></div><div><b>Traslado estimado</b><span>{{ r.travel_min }} min{% if r.travel_distance_km %} · {{ r.travel_distance_km }} km{% endif %}</span></div><div><b>Tiempo total</b><span>{{ r.duration_min+r.travel_min }} min</span></div></div>
+            <form class="single-save-form" method="post" action="{{ url_for('save_requirement',req_id=r.id) }}">
+              <div class="single-save-grid">
+                <label>Prioridad<select name="priority">{% for n,l in PRIORITY_LABEL.items() %}<option value="{{n}}" {% if r.priority==n %}selected{% endif %}>{{l}}</option>{% endfor %}</select></label>
+                <label>Operador<select name="operator_id"><option value="">Sin asignar</option>{% for o in operators %}<option value="{{o.id}}" {% if r.operator_id==o.id %}selected{% endif %}>{{o.name}} · {{o.status}}</option>{% endfor %}</select></label>
+                <label>Vehículo<select name="vehicle_id"><option value="">Sin vehículo</option>{% for v in vehicles %}<option value="{{v.id}}" {% if r.vehicle_id==v.id %}selected{% endif %}>{{v.name}} · {{v.status}}</option>{% endfor %}</select></label>
+                <label>Inicio programado<input type="datetime-local" name="assigned_start" value="{{ r.assigned_start or r.need_at }}"></label>
+                <label>Estado<select name="status">
+                  <option value="Pendiente" {% if r.status=='Pendiente' %}selected{% endif %}>Pendiente</option>
+                  <option value="Asignado" {% if r.status=='Asignado' %}selected{% endif %}>Asignado</option>
+                  <option value="En ejecución" {% if r.status=='En ejecución' %}selected{% endif %}>En ejecución</option>
+                  <option value="Cancelado" {% if r.status=='Cancelado' %}selected{% endif %}>Cancelado</option>
+                  <option value="Rechazado" {% if r.status=='Rechazado' %}selected{% endif %}>Rechazado</option>
+                </select><small>El administrador puede iniciar una actividad asignada. La finalización puede realizarla el operador asignado o el administrador.</small></label>
+                <label class="wide-field">Observación del administrador<textarea name="controller_note" rows="3" placeholder="Observación opcional">{{ r.controller_note or '' }}</textarea></label>
+              </div>
+              <div class="single-save-actions"><button type="submit" class="save-all-button">GUARDAR CAMBIOS</button></div>
+            </form>
+            {% if r.status=='En ejecución' %}
+            <form class="admin-finish-form" method="post" action="{{ url_for('conclude',req_id=r.id) }}" onsubmit="return confirm('¿Confirma que desea finalizar esta actividad? Pasará al calendario.')">
+              <label>Observación de cierre<input name="incident" placeholder="Incidencia u observación final (opcional)"></label>
+              <button type="submit" class="finish-job-button">FINALIZAR ACTIVIDAD Y ENVIAR AL CALENDARIO</button>
+            </form>
+            {% endif %}
+          </div>
+        </details>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty-state">No hay requerimientos en este estado.</div>{% endif %}
+    </section>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}
