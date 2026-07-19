@@ -1,4 +1,4 @@
-# DESIGN · Logística Operacional v9
+# DESIGN · Logística Operacional
 
 ## Novedades
 
@@ -8,6 +8,8 @@
 - El operador visualiza la prioridad de cada actividad.
 - El operador asignado y el administrador pueden finalizar actividades en ejecución.
 - Las actividades finalizadas pasan automáticamente al Calendario.
+- Calendario operadores (Turnos y actividades)
+- Calendario Equipos (Asistencia y actividades)
 
 
 
