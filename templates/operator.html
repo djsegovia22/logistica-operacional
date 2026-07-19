@@ -15,23 +15,27 @@
   {% if not selected_operator %}<div class="empty-state">Seleccione un operador para ver su agenda.</div>{% endif %}
   {% endif %}
   {% if operators is none or selected_operator %}
-  <div class="timeline">
-  {% for r in rows %}
+  {% if not days %}<div class="empty-state">No hay actividades asignadas.</div>{% endif %}
+  {% for day in days %}
+  <div class="agenda-day-group">
+    <div class="agenda-day-header {{'is-today' if day.is_today}} {{'is-overdue' if day.is_overdue}}"><span>{{day.label}}</span>{% if day.is_today %}<b>HOY</b>{% endif %}{% if day.is_overdue %}<b>ATRASADO</b>{% endif %}</div>
+    <div class="timeline">
+    {% for r in day.rows %}
     <article class="timeline-item">
       <div class="timeline-time"><b>{{r.assigned_start[11:16]}}</b><span>{{r.assigned_end[11:16]}}</span></div>
-      <div class="timeline-card operator-job-card">
+      <div class="timeline-card operator-job-card {{'overdue-card' if day.is_overdue}}">
         <div>
           <h3>{{r.type}}</h3>
           <p><b>Origen:</b> {{r.origin}}</p>
           <p><b>Destino:</b> {{r.destination}}</p>{% if r.destination_address %}<p><b>Dirección:</b> {{r.destination_address}}</p>{% endif %}
           <a class="maps-button" href="{{r.destination_maps_url or ('https://www.google.com/maps/dir/?api=1&origin=' ~ (r.origin|urlencode) ~ '&destination=' ~ (r.destination|urlencode) ~ '&travelmode=driving')}}" target="_blank" rel="noopener">📍 Abrir ruta en Google Maps</a>
           {% if r.controller_note %}<p class="controller-note"><b>Observación del administrador:</b> {{r.controller_note}}</p>{% endif %}
-          {% if r.document_name %}<a class="maps-button" href="{{url_for('view_document',req_id=r.id)}}" target="_blank" rel="noopener">📎 Ver documento adjunto</a>{% endif %}
+          {% if r.document_name %}<a class="maps-button doc-button" href="{{url_for('view_document',req_id=r.id)}}" target="_blank" rel="noopener">📎 Ver documento adjunto</a>{% endif %}
         </div>
         <div><p><b>Vehículo:</b> {{r.vehicle_name or 'Sin vehículo informado'}}</p><p><b>Solicitante:</b> {{r.requester}}</p><p><b>Prioridad:</b> <span class="priority-chip p{{ r.priority }}">{{ PRIORITY_LABEL.get(r.priority,r.priority) }}</span></p></div>
         <div class="agenda-actions">
           <span class="status {{'status-assigned' if r.status=='Asignado' else 'status-running'}}">{{r.status}}</span>
-          <a class="outline contact-button" href="https://wa.me/{{r.requester_phone|replace('+','')}}" target="_blank" rel="noopener">Contactar solicitante</a>
+          <a class="contact-button" href="https://wa.me/{{r.requester_phone|replace('+','')}}?text={{ ('Hola ' ~ r.requester ~ ', te contacto por tu solicitud de ' ~ r.type) | urlencode }}" target="_blank" rel="noopener">💬 Contactar solicitante</a>
           {% if r.status=='Asignado' %}
           <form method="post" action="{{url_for('start_job',req_id=r.id)}}"><button class="start-job-button">INICIAR ACTIVIDAD</button></form>
           {% else %}
@@ -50,8 +54,10 @@
         </div>
       </div>
     </article>
-  {% else %}<div class="empty-state">No hay actividades asignadas.</div>{% endfor %}
+    {% endfor %}
+    </div>
   </div>
+  {% endfor %}
   {% endif %}
 </section>
 {% endblock %}

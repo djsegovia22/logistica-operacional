@@ -22,7 +22,7 @@
         <div class="req-line req-line-head req-line-v6"><span>FECHA SOLICITUD</span><span>TIPO SOLICITUD</span><span>SOLICITANTE</span><span>FAENA / DESTINO</span><span>FECHA NECESIDAD</span><span>PRIORIDAD</span><span>OPERADOR</span><span>ESTADO</span><span>ACCIÓN</span></div>
         {% for r in section_rows %}
         {% set status_class=STATUS_CLASS.get(r.status,'') %}
-        <details class="req-row {{ status_class }}">
+        <details class="req-row {{ status_class }}" id="req-{{ r.id }}">
           <summary class="req-line req-line-v6">
             <span><b>{{ r.created_at[:10] if r.created_at else '-' }}</b><small>{{ r.created_at[11:16] if r.created_at else '' }}</small></span>
             <span class="req-main"><b>{{ r.type }}</b><small>{{ r.origin }}</small></span>
@@ -82,4 +82,15 @@
   {% endfor %}
   </div>
 </section>
+<script>
+if (location.hash.startsWith('#req-')) {
+  const target = document.querySelector(location.hash);
+  if (target) {
+    target.open = true;
+    target.classList.add('highlight-target');
+    target.scrollIntoView({behavior:'smooth', block:'center'});
+    setTimeout(() => target.classList.remove('highlight-target'), 2600);
+  }
+}
+</script>
 {% endblock %}

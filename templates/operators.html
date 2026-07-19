@@ -66,10 +66,15 @@
         {% set day_blocks = o.days.get(d.iso, []) %}
         <div class="roster-day-col {{'roster-today' if d.is_today}}">
           {% if view=='mes' %}
-            {% if day_blocks %}<span class="status day-chip {{day_blocks[0].status_class}}" title="{{day_blocks|map(attribute='label')|join(', ')}}">{{day_blocks[0].status}}{% if day_blocks|length>1 %} +{{day_blocks|length-1}}{% endif %}</span>
+            {% if day_blocks %}
+              {% if day_blocks[0].id %}<a class="status day-chip {{day_blocks[0].status_class}}" href="{{url_for('requirements_panel')}}#req-{{day_blocks[0].id}}" title="{{day_blocks|map(attribute='label')|join(', ')}}">{{day_blocks[0].status}}{% if day_blocks|length>1 %} +{{day_blocks|length-1}}{% endif %}</a>
+              {% else %}<span class="status day-chip {{day_blocks[0].status_class}}" title="{{day_blocks|map(attribute='label')|join(', ')}}">{{day_blocks[0].status}}{% if day_blocks|length>1 %} +{{day_blocks|length-1}}{% endif %}</span>{% endif %}
             {% else %}<span class="status day-chip status-available">Disponible</span>{% endif %}
           {% else %}
-            {% if day_blocks %}{% for b in day_blocks %}<div class="day-block {{b.status_class}}"><b>{{b.start}} - {{b.end}}</b><span>{{b.label}}</span><small>{{b.status}}</small></div>{% endfor %}
+            {% if day_blocks %}{% for b in day_blocks %}
+              {% if b.id %}<a class="day-block {{b.status_class}}" href="{{url_for('requirements_panel')}}#req-{{b.id}}"><b>{{b.start}} - {{b.end}}</b><span>{{b.label}}</span><small>{{b.status}}</small></a>
+              {% else %}<div class="day-block {{b.status_class}}"><b>{{b.start}} - {{b.end}}</b><span>{{b.label}}</span><small>{{b.status}}</small></div>{% endif %}
+            {% endfor %}
             {% else %}<div class="day-block status-available"><span>Disponible</span></div>{% endif %}
           {% endif %}
         </div>

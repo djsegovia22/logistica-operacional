@@ -32,8 +32,8 @@ REQUEST_TYPES=[
     {'label':'Solicitud de camioneta','icon':'🛻','hint':'Camioneta para faena o caso excepcional'},
     {'label':'Solicitud de camión o maquinaria','icon':'🚚','hint':'Equipo solicitado en faena'},
     {'label':'Traslado de maquinaria','icon':'🚜','hint':'Equipo solicitado en faena'},
-    {'label':'Trámite administrativo','icon':'🖨','hint':'Movilización y gestión de trámite'},
-    {'label':'Otra gestión operacional','icon':'🪄','hint':'Todo tipo de servicio'},
+    {'label':'Trámite administrativo','icon':'👨‍💼','hint':'Movilización y gestión de trámite'},
+    {'label':'Otra gestión operacional','icon':'👨‍💼','hint':'Todo tipo de servicio'},
     {'label':'Urgencia','icon':'🚨','hint':'Atención inmediata'},
 ]
 STATUS_CLASS={'Revisión y confirme':'status-review','Pendiente':'status-pending','Asignado':'status-assigned','En ejecución':'status-running','Finalizado':'status-done','Concluido':'status-done','Cancelado':'status-cancelled','Rechazado':'status-cancelled','Disponible':'status-available','Descanso':'status-resting','Vacaciones':'status-vacation','Licencia':'status-leave','Exámenes':'status-exam','En uso':'status-assigned','Mantención':'status-running','Fuera de servicio':'status-resting'}
@@ -528,8 +528,9 @@ def operators_day():
     for r in reqs:
         source=r['assigned_start'] or r['need_at']
         day=source[:10]
-        req_blocks.setdefault(r['operator_id'],{}).setdefault(day,[]).append(
-            {'start':source[11:16],'end':(r['assigned_end'] or r['need_at'])[11:16],'label':r['type'],'status':r['status'],'status_class':STATUS_CLASS.get(r['status'],'')})
+        block={'start':source[11:16],'end':(r['assigned_end'] or r['need_at'])[11:16],'label':r['type'],'status':r['status'],'status_class':STATUS_CLASS.get(r['status'],'')}
+        if r['status'] in ('Asignado','En ejecución'): block['id']=r['id']
+        req_blocks.setdefault(r['operator_id'],{}).setdefault(day,[]).append(block)
     for op_id in req_blocks:
         for day in req_blocks[op_id]:
             req_blocks[op_id][day].sort(key=lambda b:b['start'])
@@ -936,6 +937,19 @@ def audit_view():
 
 AGENDA_QUERY='''SELECT r.*,u.name requester,u.phone requester_phone,v.name vehicle_name,d.maps_url destination_maps_url,d.address destination_address FROM requirements r JOIN users u ON u.id=r.requester_id LEFT JOIN vehicles v ON v.id=r.vehicle_id LEFT JOIN destinations d ON d.name=r.destination WHERE r.operator_id=? AND r.status IN ('Asignado','En ejecución') ORDER BY r.assigned_start'''
 
+def group_agenda_by_day(rows,only_upto_today=False):
+    grouped={}
+    for r in rows:
+        grouped.setdefault(r['assigned_start'][:10],[]).append(r)
+    today_iso=date.today().isoformat()
+    if only_upto_today:
+        grouped={d:v for d,v in grouped.items() if d<=today_iso}
+    days=[]
+    for d in sorted(grouped):
+        dd=date.fromisoformat(d)
+        days.append({'date':d,'label':f'{WEEKDAYS_LONG_ES[dd.weekday()]} {dd.day} de {MONTHS_ES[dd.month-1]}','is_today':d==today_iso,'is_overdue':d<today_iso,'rows':grouped[d]})
+    return days
+
 @app.route('/operador')
 @login_required
 def operator_view():
@@ -945,11 +959,11 @@ def operator_view():
         selected_id=request.args.get('operator_id',type=int)
         selected=next((o for o in operators if o['id']==selected_id),None)
         rows=db().execute(AGENDA_QUERY,(selected['id'],)).fetchall() if selected else []
-        return render_template('operator.html',rows=rows,operators=operators,selected_operator=selected)
+        return render_template('operator.html',days=group_agenda_by_day(rows),operators=operators,selected_operator=selected)
     op=db().execute('SELECT * FROM operators WHERE user_id=?',(u['id'],)).fetchone()
     if not op: return redirect(url_for('dashboard'))
     rows=db().execute(AGENDA_QUERY,(op['id'],)).fetchall()
-    return render_template('operator.html',rows=rows,operators=None,selected_operator=None)
+    return render_template('operator.html',days=group_agenda_by_day(rows,only_upto_today=True),operators=None,selected_operator=None)
 @app.route('/iniciar/<int:req_id>',methods=['POST'])
 @login_required
 def start_job(req_id):
@@ -992,7 +1006,8 @@ def conclude(req_id):
 @login_required
 def rate(req_id):
     db().execute('UPDATE requirements SET rating=?,feedback=? WHERE id=? AND requester_id=?',(max(1,min(5,int(request.form['rating']))),request.form.get('feedback',''),req_id,current_user()['id'])); db().commit(); flash('Evaluación guardada.','success'); return redirect(url_for('my_requests'))
+if not DB_PATH.exists(): init_db()
+ensure_schema()
+
 if __name__=='__main__':
-    if not DB_PATH.exists(): init_db()
-    ensure_schema()
-    app.run(host='0.0.0.0',port=5000,debug=True)
+    app.run(host='0.0.0.0',port=5000,debug=os.environ.get('FLASK_DEBUG')=='1')
